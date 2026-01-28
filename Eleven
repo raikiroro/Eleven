@@ -1,0 +1,56 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local event = ReplicatedStorage:WaitForChild("InverseGravityEvent")
+
+local ENABLED = false
+local SPEED = 0.5
+
+local forces = {}
+
+local function isCharacterPart(part)
+	local model = part:FindFirstAncestorOfClass("Model")
+	return model and model:FindFirstChildOfClass("Humanoid") ~= nil
+end
+
+local function applyForces()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart")
+			and not obj.Anchored
+			and not isCharacterPart(obj)
+			and not forces[obj] then
+			
+			local bv = Instance.new("BodyVelocity")
+			bv.MaxForce = Vector3.new(0, math.huge, 0)
+			bv.Velocity = Vector3.new(0, SPEED, 0)
+			bv.Parent = obj
+			
+			forces[obj] = bv
+		end
+	end
+end
+
+local function clearForces()
+	for part, bv in pairs(forces) do
+		if bv and bv.Parent then
+			bv:Destroy()
+		end
+	end
+	table.clear(forces)
+end
+
+RunService.Heartbeat:Connect(function()
+	if ENABLED then
+		applyForces()
+	end
+end)
+
+event.OnServerEvent:Connect(function(_, state)
+	if typeof(state) ~= "boolean" then return end
+	
+	ENABLED = state
+	
+	if not ENABLED then
+		clearForces()
+	end
+end)
